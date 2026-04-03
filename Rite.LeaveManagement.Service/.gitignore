@@ -1,0 +1,8 @@
+**/serviceAccountKey.json
+bin/
+obj/
+.vs/
+out/
+*.dll
+*.exe
+*.user

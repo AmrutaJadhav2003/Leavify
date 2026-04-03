@@ -1,0 +1,78 @@
+name: Deploy .NET API to EC2 via Docker
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-to-ec2:
+    runs-on: ubuntu-latest
+
+    env:
+      EC2_HOST: ec2-user@<EC2_PUBLIC_IP> 
+      EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+      APP_NAME: rite-leave-management
+      IMAGE_TAG: latest
+      CONTAINER_PORT: 5000
+      HOST_PORT: 5000
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Copy project to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ env.EC2_HOST }}
+        username: ec2-user
+        key: ${{ env.EC2_KEY }}
+        source: "Rite.LeaveManagement.Service"
+        target: "~/"
+
+    - name: SSH into EC2, install sudo, Docker, and build+run container
+      uses: appleboy/ssh-action@v1.1.0
+      with:
+        host: ${{ env.EC2_HOST }}
+        username: ec2-user
+        key: ${{ env.EC2_KEY }}
+        script: |
+          # Install sudo if missing
+          if ! command -v sudo &> /dev/null; then
+            echo "sudo not found, installing..."
+            yum install -y sudo || apt-get update && apt-get install -y sudo
+          fi
+
+          # Update and install Docker
+          if command -v yum &> /dev/null; then
+            sudo yum update -y
+            sudo yum install -y docker
+          elif command -v apt-get &> /dev/null; then
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io
+          fi
+
+          sudo systemctl enable docker
+          sudo systemctl start docker
+          sudo usermod -aG docker ec2-user
+
+          # Install Docker Compose
+          DOCKER_COMPOSE_VERSION=2.27.0
+          sudo curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version
+
+          # Build Docker image inside EC2
+          cd Rite.LeaveManagement.Service
+          docker build -t $APP_NAME .
+
+          # Stop & remove existing container if running
+          docker stop $APP_NAME || true
+          docker rm $APP_NAME || true
+
+          # Run new container
+          docker run -d --name $APP_NAME -p $HOST_PORT:$CONTAINER_PORT $APP_NAME

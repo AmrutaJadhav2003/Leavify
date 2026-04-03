@@ -1,0 +1,45 @@
+# Ignore .NET build outputs
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE folders
+.vs/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker files
+Dockerfile*
+.dockerignore
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node/npm related (if present in same repo)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Test results
+TestResults/
+*.coverage
+*.coveragexml
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  leavify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: leavify:latest
+    container_name: leavify
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - STORAGE_ROOT_PATH=/data/leavify
+    volumes:
+      - ./Rite.LeaveManagement.Svc/Certificate:/app/Certificate:ro
+      - ./data/leavify:/data/leavify
+      - ./logs:/app/logs
